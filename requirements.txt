@@ -20,3 +20,5 @@ faiss-cpu
 gitpython
 
 tiktoken
+streamlit
+requests

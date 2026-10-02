@@ -42,3 +42,6 @@ logs/
 
 # OS files
 ._*
+
+# Streamlit
+/STREAMLIT_SETUP.md

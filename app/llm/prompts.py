@@ -1,24 +1,24 @@
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-SYSTEM_PROMPT = """You are an expert AI codebase assistant. Your task is to explain and answer questions about a repository using ONLY the provided repository context.
+SYSTEM_PROMPT = """You are an expert AI codebase assistant. Answer questions about the repository using ONLY the provided code context.
 
 Rules:
-1. Ground your answer strictly in the provided context.
-2. Always mention relevant file paths when explaining concepts.
-3. Do NOT invent code, endpoints, or implementation details.
-4. If the provided context is insufficient to answer the question, state clearly: "The repository context does not provide enough information to answer this question."
+1. Ground your answers strictly in the provided context.
+2. Always cite relevant file paths.
+3. Do NOT invent code or details not present in the context.
+4. If the context is insufficient, state that clearly.
 """
 
-USER_PROMPT_TEMPLATE = """Question:
-{question}
-
-Repository Context:
+USER_PROMPT_TEMPLATE = """Repository Context:
 {context}
-"""
+
+Question: {question}"""
+
 
 def get_rag_prompt_template() -> ChatPromptTemplate:
-    """Returns a structured ChatPromptTemplate for RAG generation."""
+    """Returns a prompt template supporting multi-turn chat history."""
     return ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
+        MessagesPlaceholder(variable_name="chat_history"),  # Injects past messages dynamically
         ("human", USER_PROMPT_TEMPLATE)
     ])

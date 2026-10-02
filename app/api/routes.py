@@ -1,30 +1,25 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
+from langchain_core.messages import HumanMessage, AIMessage
 
+from app.graph.graph import graph_app
 from app.ingestion.github import GitHubIngestion
 from app.ingestion.scanner import scan_repository
 from app.ingestion.chunker import chunk_files
 from app.retrieval.vectorstore import create_vectorstore
-from app.graph.graph import graph_app
 
 router = APIRouter()
 
 
-# Request/Response Schemas
-class RepositoryRequest(BaseModel):
-    url: str
-
-
-class RepositoryResponse(BaseModel):
-    message: str
-    repo_name: str
-    files_scanned: int
-    chunks_indexed: int
+class MessageTurn(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
 
 
 class ChatRequest(BaseModel):
     question: str
+    chat_history: Optional[List[MessageTurn]] = []
 
 
 class ChatResponse(BaseModel):
@@ -33,68 +28,84 @@ class ChatResponse(BaseModel):
     referenced_files: List[str]
 
 
-@router.post(
-    "/repository",
-    response_model=RepositoryResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Ingest a GitHub repository",
-    description="Clones a GitHub repository, scans supported files, chunks code, and builds the FAISS vector index.",
-)
-async def ingest_repository(payload: RepositoryRequest):
-    ingestor = GitHubIngestion()
-    local_repo_path = None
+class RepoUploadRequest(BaseModel):
+    repo_url: str
+
+
+class RepoUploadResponse(BaseModel):
+    message: str
+    repo_name: str
+    files_processed: int
+    chunks_created: int
+
+
+@router.post("/upload-repo", response_model=RepoUploadResponse)
+async def upload_repository(payload: RepoUploadRequest):
+    """Clones a GitHub repository, processes it, and creates vector embeddings."""
+    if not payload.repo_url.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Repository URL cannot be empty.",
+        )
 
     try:
-        # 1. Clone repository
-        local_repo_path, repo_name = ingestor.clone_repository(payload.url)
+        # Initialize GitHub ingestion
+        github_ingestion = GitHubIngestion()
 
-        # 2. Scan repository for supported source code files
-        valid_files = scan_repository(local_repo_path)
-        if not valid_files:
+        # Clone the repository
+        local_repo_path, repo_name = github_ingestion.clone_repository(payload.repo_url)
+
+        # Scan for supported files
+        file_paths = scan_repository(local_repo_path)
+
+        if not file_paths:
+            github_ingestion.cleanup(local_repo_path)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No supported source code files found in the repository.",
+                detail="No supported files found in the repository.",
             )
 
-        # 3. Chunk source code files while preserving relative path metadata
-        chunks = chunk_files(valid_files, repo_base_path=local_repo_path)
+        # Chunk the files
+        chunks = chunk_files(file_paths, local_repo_path)
+
         if not chunks:
+            github_ingestion.cleanup(local_repo_path)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to extract readable content or generate chunks from repository files.",
+                detail="No content chunks created from the repository.",
             )
 
-        # 4. Embed chunks and save to FAISS vectorstore
+        # Create vectorstore
         create_vectorstore(chunks)
 
-        return RepositoryResponse(
-            message="Repository successfully ingested and indexed.",
+        # Cleanup the cloned repository
+        github_ingestion.cleanup(local_repo_path)
+
+        return RepoUploadResponse(
+            message="Repository successfully processed and indexed.",
             repo_name=repo_name,
-            files_scanned=len(valid_files),
-            chunks_indexed=len(chunks),
+            files_processed=len(file_paths),
+            chunks_created=len(chunks),
         )
 
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except RuntimeError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error ingesting repository: {str(e)}",
+            detail=str(e),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing repository: {str(e)}",
         )
 
-    finally:
-        # Clean up temporary clone directory
-        if local_repo_path:
-            ingestor.cleanup(local_repo_path)
 
-
-@router.post(
-    "/chat",
-    response_model=ChatResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Ask a question about the indexed repository",
-    description="Executes the LangGraph workflow to retrieve code context and generate a response.",
-)
+@router.post("/chat", response_model=ChatResponse)
 async def chat_with_repo(payload: ChatRequest):
     if not payload.question.strip():
         raise HTTPException(
@@ -103,11 +114,22 @@ async def chat_with_repo(payload: ChatRequest):
         )
 
     try:
-        # Run state machine graph
-        initial_state = {"question": payload.question}
+        # Convert incoming JSON history to LangChain message objects
+        formatted_history = []
+        for msg in payload.chat_history:
+            if msg.role == "user":
+                formatted_history.append(HumanMessage(content=msg.content))
+            elif msg.role == "assistant":
+                formatted_history.append(AIMessage(content=msg.content))
+
+        # Invoke graph with question and formatted history
+        initial_state = {
+            "question": payload.question,
+            "chat_history": formatted_history
+        }
         final_state = graph_app.invoke(initial_state)
 
-        # Collect unique file paths from retrieved documents metadata
+        # Collect unique file paths
         retrieved_docs = final_state.get("retrieved_documents", [])
         referenced_files = list(
             {
@@ -123,23 +145,8 @@ async def chat_with_repo(payload: ChatRequest):
             referenced_files=referenced_files,
         )
 
-    except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No repository index found. Please ingest a repository via /repository first.",
-        ) from e
-    except ValueError as e:
-        if "HF_TOKEN" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=str(e),
-            ) from e
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing question: {str(e)}",
-        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing question: {str(e)}",
-        ) from e
+        )
