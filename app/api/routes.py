@@ -65,7 +65,6 @@ async def upload_repository(payload: RepoUploadRequest):
                 detail="No supported files found in the repository.",
             )
 
-        # Chunk the files
         chunks = chunk_files(file_paths, local_repo_path)
 
         if not chunks:
@@ -75,10 +74,8 @@ async def upload_repository(payload: RepoUploadRequest):
                 detail="No content chunks created from the repository.",
             )
 
-        # Create vectorstore
         create_vectorstore(chunks)
 
-        # Cleanup the cloned repository
         github_ingestion.cleanup(local_repo_path)
 
         return RepoUploadResponse(
@@ -114,7 +111,6 @@ async def chat_with_repo(payload: ChatRequest):
         )
 
     try:
-        # Convert incoming JSON history to LangChain message objects
         formatted_history = []
         for msg in payload.chat_history:
             if msg.role == "user":
@@ -122,14 +118,12 @@ async def chat_with_repo(payload: ChatRequest):
             elif msg.role == "assistant":
                 formatted_history.append(AIMessage(content=msg.content))
 
-        # Invoke graph with question and formatted history
         initial_state = {
             "question": payload.question,
             "chat_history": formatted_history
         }
         final_state = graph_app.invoke(initial_state)
 
-        # Collect unique file paths
         retrieved_docs = final_state.get("retrieved_documents", [])
         referenced_files = list(
             {
