@@ -91,7 +91,9 @@ The application follows a modular architecture with clear separation of concerns
 - **LLM Integration**: LangChain - Framework for LLM applications
 - **Embeddings**: HuggingFace sentence-transformers - State-of-the-art text embeddings
 - **Vector Database**: FAISS - Efficient similarity search and clustering
-- **Frontend**: Streamlit - Python framework for ML/data apps
+- **Frontend**: React 19 + TypeScript - Modern UI library with type safety
+- **Frontend Styling**: Tailwind CSS v4 - Utility-first CSS framework
+- **Build Tool**: Vite - Fast build tool and dev server
 - **Git Operations**: GitPython - Python library for Git operations
 - **Configuration**: Pydantic Settings - Type-safe configuration management
 
@@ -125,21 +127,22 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 The backend API will be available at `http://localhost:8000`
 
-### Start the Streamlit Frontend
+### Start the React Frontend
 
 In a new terminal:
 
 ```bash
-source .venv/bin/activate
-streamlit run streamlit_app.py
+cd frontend
+npm install
+npm run dev
 ```
 
-The frontend will be available at `http://localhost:8501`
+The frontend will be available at `http://localhost:5173`
 
 ### Using the Application
 
-1. Open the Streamlit app in your browser
-2. Enter a GitHub repository URL in the sidebar (e.g., `https://github.com/username/repo`)
+1. Open the React app in your browser at `http://localhost:5173`
+2. Enter a GitHub repository URL (e.g., `https://github.com/username/repo`)
 3. Wait for the repository to be processed and indexed
 4. Start asking questions about the codebase:
    - "Where is authentication implemented?"
@@ -147,6 +150,21 @@ The frontend will be available at `http://localhost:8501`
    - "Why might this endpoint return 401?"
    - "Where is the database connection configured?"
 5. View answers with referenced file paths for context
+
+### Frontend Configuration
+
+The frontend can be configured via environment variables. Copy `.env.example` to `.env` in the `frontend/` directory:
+
+```bash
+cd frontend
+cp .env.example .env
+```
+
+Edit `.env` to configure the backend URL:
+
+```
+VITE_API_BASE_URL=http://localhost:8000
+```
 
 ## 🔌 API Endpoints
 
@@ -232,6 +250,16 @@ ai-repo-intelligence/
 ├── data/                         # Data storage directory
 │   ├── vectorstore/              # Persisted FAISS index
 │   └── temp_repos/               # Temporary cloned repositories
+├── frontend/                     # React + TypeScript frontend
+│   ├── src/
+│   │   ├── components/           # React components
+│   │   ├── services/             # API service layer
+│   │   ├── types/                # TypeScript type definitions
+│   │   ├── App.tsx               # Main application component
+│   │   └── main.tsx              # Application entry point
+│   ├── .env.example              # Environment variables template
+│   ├── package.json              # Frontend dependencies
+│   └── README.md                 # Frontend documentation
 ├── tests/                        # Test suite
 │   └── test_chat_route.py        # API route tests
 ├── .env                          # Environment variables (not in git)
@@ -239,8 +267,6 @@ ai-repo-intelligence/
 ├── .gitignore                    # Git ignore patterns
 ├── main.py                       # FastAPI application entry point
 ├── requirements.txt              # Python dependencies
-├── streamlit_app.py              # Streamlit frontend application
-├── STREAMLIT_SETUP.md            # Streamlit setup documentation
 └── test_script.py                # Test script for manual testing
 ```
 

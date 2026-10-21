@@ -1,4 +1,3 @@
-# Environment / secrets
 .env
 .env.*
 !.env.example
@@ -9,7 +8,6 @@ env/
 env.bak/
 venv.bak/
 
-# Python cache / build artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -30,18 +28,17 @@ dist/
 *.faiss
 *.index
 
-# IDE / editor
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Logs
 *.log
 logs/
 
-# OS files
 ._*
 
-# Streamlit
-/STREAMLIT_SETUP.md
+
+frontend_guild.md
+FRONTEND_SUMMARY.md
+testing_guild.md
