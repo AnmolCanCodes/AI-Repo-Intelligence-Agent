@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { uploadRepository } from '../services/api';
 import type { RepositoryInfo } from '../types';
-import { Github } from 'lucide-react';
 
 interface RepositoryConnectProps {
   onConnected: (info: RepositoryInfo) => void;
+  onIndexing: () => void;
   onError: (error: string) => void;
   isIndexing: boolean;
 }
 
-export default function RepositoryConnect({ onConnected, onError, isIndexing }: RepositoryConnectProps) {
+export default function RepositoryConnect({ onConnected, onIndexing, onError }: RepositoryConnectProps) {
   const [repoUrl, setRepoUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +31,7 @@ export default function RepositoryConnect({ onConnected, onError, isIndexing }: 
 
     setIsSubmitting(true);
     setError(null);
+    onIndexing();
 
     try {
       const response = await uploadRepository({ repo_url: repoUrl.trim() });
@@ -39,8 +40,13 @@ export default function RepositoryConnect({ onConnected, onError, isIndexing }: 
         files_processed: response.files_processed,
         chunks_created: response.chunks_created,
       });
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to process repository';
+    } catch (err: unknown) {
+      const backendUnavailableMessage = 'backend is not running, clone the repo to use it on computer.';
+      const networkError = (err as any)?.code === 'ERR_NETWORK' || !(err as any)?.response;
+      const errorMessage = networkError
+        ? backendUnavailableMessage
+        : (err as any)?.response?.data?.detail || (err as any)?.message || 'Failed to process repository';
+
       setError(errorMessage);
       onError(errorMessage);
     } finally {
@@ -53,7 +59,7 @@ export default function RepositoryConnect({ onConnected, onError, isIndexing }: 
       <div className="max-w-lg w-full">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-neutral-900 rounded-lg mb-4">
-            <Github className="w-8 h-8 text-white" />
+            <img src="/github_logo.svg" alt="GitHub" className="w-8 h-8" />
           </div>
           <h1 className="text-3xl font-semibold text-neutral-900 mb-2">Repo Intelligence</h1>
           <p className="text-neutral-600">

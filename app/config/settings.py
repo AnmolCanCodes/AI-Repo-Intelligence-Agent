@@ -7,11 +7,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # API Configuration
-    HF_TOKEN: SecretStr | None = Field(default=None,description="Hugging Face API token")
+    OPENROUTER_API_KEY: SecretStr | None = Field(default=None, description="OpenRouter API token")
 
-    HF_MODEL: str = Field(default="zai-org/GLM-5.3",description="Hugging Face model repository ID")
+    OPENROUTER_MODEL: str = Field(default="openai/gpt-oss-20b", description="OpenRouter model name")
 
-    GITHUB_TOKEN: SecretStr | None = Field(default=None,description="GitHub Personal Access Token")
+    GITHUB_TOKEN: SecretStr | None = Field(default=None, description="GitHub Personal Access Token")
 
     # Storage Paths
     VECTORSTORE_DIRECTORY: str = Field(
@@ -78,15 +78,32 @@ class Settings(BaseSettings):
         return ""
 
     @property
-    def hf_token_str(self) -> str:
-        direct = self._read_env_secret("HF_TOKEN", "HF_TOEKN")
+    def openrouter_api_key_str(self) -> str:
+        direct = self._read_env_secret("OPENROUTER_API_KEY", "HF_TOKEN", "HF_TOEKN")
         if direct:
             return direct
         return (
-            self.HF_TOKEN.get_secret_value()
-            if self.HF_TOKEN
+            self.OPENROUTER_API_KEY.get_secret_value()
+            if self.OPENROUTER_API_KEY
             else ""
         )
+
+    @property
+    def OPENROUTER_API_KEY_str(self) -> str:
+        return self.openrouter_api_key_str
+
+    @property
+    def hf_token_str(self) -> str:
+        return self.openrouter_api_key_str
+
+    @property
+    def openrouter_model_name(self) -> str:
+        direct = self._read_env_secret("OPENROUTER_MODEL", "HF_MODEL")
+        return direct or self.OPENROUTER_MODEL
+
+    @property
+    def HF_MODEL(self) -> str:
+        return self.openrouter_model_name
 
     @property
     def github_token_str(self) -> str:

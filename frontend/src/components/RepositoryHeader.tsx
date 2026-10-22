@@ -1,4 +1,4 @@
-import { Github, RotateCcw, Plus } from 'lucide-react';
+import { RotateCcw, Plus } from 'lucide-react';
 import type { RepositoryInfo } from '../types';
 
 interface RepositoryHeaderProps {
@@ -14,7 +14,7 @@ export default function RepositoryHeader({ repositoryInfo, onClearChat, onNewRep
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 bg-neutral-900 rounded-md">
-              <Github className="w-5 h-5 text-white" />
+              <img src="/github_logo.svg" alt="GitHub" className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-neutral-900">Repo Intelligence</h1>

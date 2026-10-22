@@ -8,7 +8,7 @@ An AI-powered codebase assistant that enables developers to connect a GitHub rep
 - **Natural Language Queries**: Ask questions in plain English without needing to know the codebase
 - **LangGraph Workflow**: Structured reasoning pipeline for consistent, explainable answers
 - **File References**: Every answer includes the specific files used to generate the response
-- **Modern UI**: Clean Streamlit interface with gradient design and smooth animations
+- **Modern UI**: Clean React + TypeScript interface with Tailwind CSS styling
 - **GitHub Integration**: Clone and index any public GitHub repository
 - **Vector Search**: Semantic search using embeddings for concept-based retrieval
 - **Code-Aware Chunking**: Intelligently splits code into manageable chunks with metadata
@@ -21,7 +21,7 @@ The application follows a modular architecture with clear separation of concerns
 
 ```
 ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
-│   Streamlit     │────────▶│   FastAPI       │────────▶│   LangGraph     │
+│   React + TS    │────────▶│   FastAPI       │────────▶│   LangGraph     │
 │   Frontend      │  HTTP   │   Backend       │  Graph  │   Workflow      │
 └─────────────────┘         └─────────────────┘         └─────────────────┘
                                                                    │
@@ -89,11 +89,13 @@ The application follows a modular architecture with clear separation of concerns
 - **Backend Framework**: FastAPI - Modern, fast web framework for building APIs
 - **Orchestration**: LangGraph - Structured agent workflows with state management
 - **LLM Integration**: LangChain - Framework for LLM applications
+- **LLM Provider**: OpenRouter - Access to multiple LLM models via unified API
 - **Embeddings**: HuggingFace sentence-transformers - State-of-the-art text embeddings
 - **Vector Database**: FAISS - Efficient similarity search and clustering
 - **Frontend**: React 19 + TypeScript - Modern UI library with type safety
 - **Frontend Styling**: Tailwind CSS v4 - Utility-first CSS framework
 - **Build Tool**: Vite - Fast build tool and dev server
+- **HTTP Client**: Axios - Promise-based HTTP client for the browser
 - **Git Operations**: GitPython - Python library for Git operations
 - **Configuration**: Pydantic Settings - Type-safe configuration management
 
@@ -108,8 +110,11 @@ cd ai-repo-intelligence
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Install root JavaScript dependencies (OpenRouter SDK)
+npm install
 
 # Configure environment variables
 cp .env.example .env
@@ -266,6 +271,7 @@ ai-repo-intelligence/
 ├── .env.example                  # Example environment variables
 ├── .gitignore                    # Git ignore patterns
 ├── main.py                       # FastAPI application entry point
+├── package.json                  # Root dependencies (OpenRouter SDK)
 ├── requirements.txt              # Python dependencies
 └── test_script.py                # Test script for manual testing
 ```
@@ -281,15 +287,6 @@ The FastAPI application entry point. It:
 - Provides a health check endpoint at `/`
 
 **Connection:** This is the starting point for the backend. It imports and mounts the API router from `app/api/routes.py`.
-
-#### `streamlit_app.py`
-The Streamlit frontend application. It:
-- Provides a modern, gradient-styled UI
-- Manages chat history and repository state
-- Communicates with the FastAPI backend via HTTP requests
-- Displays responses with file references
-
-**Connection:** Communicates with the backend API endpoints defined in `app/api/routes.py`.
 
 ### API Layer (`app/api/`)
 
@@ -459,11 +456,44 @@ Manages the FAISS vector store. It:
 - Used by `app/graph/nodes.py` during query processing
 - Used by `app/ingestion/diff_updater.py` for incremental updates
 
+### Frontend (`frontend/`)
+
+The React + TypeScript frontend provides a modern, responsive interface for interacting with the backend API.
+
+#### `frontend/src/App.tsx`
+Main application component that:
+- Manages chat state and repository URL input
+- Handles API calls to the backend for repository upload and chat queries
+- Renders the chat interface with message history
+- Displays loading states and error messages
+- Uses Lucide React icons for UI elements
+
+#### `frontend/src/services/api.ts`
+API service layer that:
+- Encapsulates HTTP requests using Axios
+- Provides typed functions for `/api/v1/upload-repo` and `/api/v1/chat` endpoints
+- Handles request/response formatting
+- Manages error handling and timeout configuration
+
+#### `frontend/src/types/index.ts`
+TypeScript type definitions for:
+- API request/response structures
+- Chat message types
+- Repository upload response data
+
+#### Frontend Features
+- Clean, modern UI with Tailwind CSS v4 styling
+- Real-time chat interface with message history
+- Markdown rendering for code blocks and formatted text
+- Responsive design for desktop and mobile
+- Loading indicators and error handling
+- File reference display in responses
+
 ## 🗄️ Data Flow Diagram
 
 ### Repository Upload Flow
 ```
-User (Streamlit) → routes.py (/upload-repo)
+User (React UI) → routes.py (/upload-repo)
     → github.py (clone_repository)
     → scanner.py (scan_repository)
     → chunker.py (chunk_files)
@@ -474,7 +504,7 @@ User (Streamlit) → routes.py (/upload-repo)
 
 ### Chat Query Flow
 ```
-User (Streamlit) → routes.py (/chat)
+User (React UI) → routes.py (/chat)
     → graph.py (graph_app.invoke)
         → nodes.py (analyze_question)
             → llm/client.py (query reformulation)

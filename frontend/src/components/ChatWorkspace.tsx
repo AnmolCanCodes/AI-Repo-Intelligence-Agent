@@ -1,11 +1,11 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import type { ChatMessage as ChatMessageType } from '../types';
 
 interface ChatWorkspaceProps {
   messages: ChatMessageType[];
-  setMessages: (messages: ChatMessageType[]) => void;
+  setMessages: Dispatch<SetStateAction<ChatMessageType[]>>;
 }
 
 export default function ChatWorkspace({ messages, setMessages }: ChatWorkspaceProps) {

@@ -38,6 +38,8 @@ logs/
 
 ._*
 
+# Node modules
+node_modules/
 
 frontend_guild.md
 FRONTEND_SUMMARY.md

@@ -7,6 +7,7 @@ python-dotenv
 
 langchain
 langchain-core
+langchain-openai
 langchain-huggingface
 langchain-community
 langgraph

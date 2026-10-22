@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { Send } from 'lucide-react';
 import { chatWithRepository } from '../services/api';
 import type { ChatMessage as ChatMessageType } from '../types';
 
 interface ChatInputProps {
   messages: ChatMessageType[];
-  setMessages: (messages: ChatMessageType[]) => void;
+  setMessages: Dispatch<SetStateAction<ChatMessageType[]>>;
 }
 
 export default function ChatInput({ messages, setMessages }: ChatInputProps) {
@@ -59,12 +59,12 @@ export default function ChatInput({ messages, setMessages }: ChatInputProps) {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chat error:', error);
       const errorMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: error.response?.data?.detail || 'Failed to get a response. Please try again.',
+        content: (error as any)?.response?.data?.detail || 'Failed to get a response. Please try again.',
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, errorMessage]);

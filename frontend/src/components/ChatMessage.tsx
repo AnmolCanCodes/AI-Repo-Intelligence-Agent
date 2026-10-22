@@ -47,9 +47,13 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    code({ node, inline, className, children, ...props }: any) {
-                      const match = /language-(\w+)/.exec(className || '');
-                      const language = match ? match[1] : '';
+                    code({ node, inline, className, children, ...props }: {
+                      node?: any;
+                      inline?: boolean;
+                      className?: string;
+                      children?: React.ReactNode;
+                      [key: string]: any;
+                    }) {
                       const codeString = String(children).replace(/\n$/, '');
 
                       if (!inline && codeString) {
