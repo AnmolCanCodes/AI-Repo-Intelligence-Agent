@@ -2,6 +2,9 @@
 
 An AI-powered codebase assistant that enables developers to connect a GitHub repository and ask questions about the codebase using natural language. Instead of manually searching through files, developers can ask questions like "Where is authentication implemented?" or "How does the login flow work?" and receive intelligent answers grounded in the actual code.
 
+**Live demo** : ai-repo-intelligence-agent.vercel.app
+```backend is running on render free tier so services spin down after 15 minutes without inbound traffic and take about 60 seconds to wake up on the next request```
+
 ## 🌟 Features
 
 - **Smart Code Retrieval**: Uses RAG (Retrieval-Augmented Generation) to find relevant code snippets
